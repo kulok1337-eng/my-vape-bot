@@ -36,14 +36,17 @@ def init_db():
         )
     ''')
 
-    # Таблица системных настроек (например, тех. работы)
+    # Таблица корзины
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT
+        CREATE TABLE IF NOT EXISTS cart (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            product_id INTEGER,
+            count INTEGER DEFAULT 1,
+            FOREIGN KEY (product_id) REFERENCES products (id)
         )
     ''')
-    
+
     # Начальные категории
     categories = [
         'Подики', 'Одноразки', 'Никотиновые пластинки (вата)',
@@ -78,13 +81,6 @@ def delete_category(cat_id):
     conn.commit()
     conn.close()
 
-def rename_category(cat_id, new_name):
-    conn = sqlite3.connect('shop.db')
-    cursor = conn.cursor()
-    cursor.execute("UPDATE categories SET name = ? WHERE id = ?", (new_name, cat_id))
-    conn.commit()
-    conn.close()
-
 def add_product_to_db(category_id, name, description, price, photo_id):
     conn = sqlite3.connect('shop.db')
     cursor = conn.cursor()
@@ -95,19 +91,53 @@ def add_product_to_db(category_id, name, description, price, photo_id):
     conn.commit()
     conn.close()
 
+def get_products_by_category(category_id):
+    conn = sqlite3.connect('shop.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, description, price, photo_id FROM products WHERE category_id = ?", (category_id,))
+    products = cursor.fetchall()
+    conn.close()
+    return products
+
+# --- КОРЗИНА ---
+
+def add_to_cart(user_id, product_id):
+    conn = sqlite3.connect('shop.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, count FROM cart WHERE user_id = ? AND product_id = ?", (user_id, product_id))
+    item = cursor.fetchone()
+    if item:
+        cursor.execute("UPDATE cart SET count = count + 1 WHERE id = ?", (item[0],))
+    else:
+        cursor.execute("INSERT INTO cart (user_id, product_id, count) VALUES (?, ?, 1)", (user_id, product_id))
+    conn.commit()
+    conn.close()
+
+def get_user_cart(user_id):
+    conn = sqlite3.connect('shop.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT p.name, p.price, c.count, p.id
+        FROM cart c
+        JOIN products p ON c.product_id = p.id
+        WHERE c.user_id = ?
+    ''', (user_id,))
+    cart_items = cursor.fetchall()
+    conn.close()
+    return cart_items
+
+def clear_user_cart(user_id):
+    conn = sqlite3.connect('shop.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM cart WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
 def update_user_balance(user_id, amount):
     conn = sqlite3.connect('shop.db')
     cursor = conn.cursor()
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
     cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
-    conn.commit()
-    conn.close()
-
-def set_courier_status(user_id, status: int):
-    conn = sqlite3.connect('shop.db')
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
-    cursor.execute("UPDATE users SET is_courier = ? WHERE user_id = ?", (status, user_id))
     conn.commit()
     conn.close()
 
