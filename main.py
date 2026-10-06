@@ -15,7 +15,7 @@ from database import (
     add_product_to_db, update_user_balance, set_courier_status, get_user_info, get_all_users_ids
 )
 
-BOT_TOKEN = "ВАШ_ТОКЕН_ОТ_BOTFATHER"
+BOT_TOKEN = "8270785657:AAGSAhrPTkWnUQpkSd3SXA8E48BamvfxxIc"
 
 # Ваш ID добавлен в список администраторов
 ADMINS = [1979046241]
