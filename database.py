@@ -15,9 +15,10 @@ def init_db():
         )
     ''')
     
-    # Таблица категорий
+    # Пересоздаем таблицу категорий, чтобы сбросить старый список
+    cursor.execute("DROP TABLE IF EXISTS categories")
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS categories (
+        CREATE TABLE categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE
         )
@@ -34,7 +35,7 @@ def init_db():
         )
     ''')
     
-    # Список категорий строго по вашей картинке
+    # Список 8 категорий строго по вашей картинке
     new_categories = [
         'Подики',
         'Одноразки',
@@ -47,7 +48,7 @@ def init_db():
     ]
     
     for cat in new_categories:
-        cursor.execute("INSERT OR IGNORE INTO categories (name) VALUES (?)", (cat,))
+        cursor.execute("INSERT INTO categories (name) VALUES (?)", (cat,))
             
     conn.commit()
     conn.close()
