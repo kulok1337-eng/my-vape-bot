@@ -34,12 +34,20 @@ def init_db():
         )
     ''')
     
-    # Заполним стартовые категории
-    cursor.execute("SELECT COUNT(*) FROM categories")
-    if cursor.fetchone()[0] == 0:
-        categories = ['Подики', 'Одноразки', 'Жижи', 'Картриджи', 'Испарители']
-        for cat in categories:
-            cursor.execute("INSERT INTO categories (name) VALUES (?)", (cat,))
+    # Список категорий строго по вашей картинке
+    new_categories = [
+        'Подики',
+        'Одноразки',
+        'Никотиновые пластинки (вата)',
+        'Испарители',
+        'Шайбы',
+        'SALE',
+        'Жижи',
+        'Картриджи'
+    ]
+    
+    for cat in new_categories:
+        cursor.execute("INSERT OR IGNORE INTO categories (name) VALUES (?)", (cat,))
             
     conn.commit()
     conn.close()
