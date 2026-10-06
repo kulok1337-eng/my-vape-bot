@@ -15,10 +15,9 @@ def init_db():
         )
     ''')
     
-    # Пересоздаем таблицу категорий, чтобы сбросить старый список
-    cursor.execute("DROP TABLE IF EXISTS categories")
+    # Таблица категорий
     cursor.execute('''
-        CREATE TABLE categories (
+        CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE
         )
@@ -30,12 +29,14 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             category_id INTEGER,
             name TEXT,
+            description TEXT,
             price REAL,
+            photo_id TEXT,
             FOREIGN KEY (category_id) REFERENCES categories (id)
         )
     ''')
     
-    # Список 8 категорий строго по вашей картинке
+    # Автоматическое наполнение базовыми категориями
     new_categories = [
         'Подики',
         'Одноразки',
@@ -48,7 +49,7 @@ def init_db():
     ]
     
     for cat in new_categories:
-        cursor.execute("INSERT INTO categories (name) VALUES (?)", (cat,))
+        cursor.execute("INSERT OR IGNORE INTO categories (name) VALUES (?)", (cat,))
             
     conn.commit()
     conn.close()
@@ -60,6 +61,16 @@ def get_categories():
     cats = cursor.fetchall()
     conn.close()
     return cats
+
+def add_product_to_db(category_id, name, description, price, photo_id):
+    conn = sqlite3.connect('shop.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO products (category_id, name, description, price, photo_id)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (category_id, name, description, price, photo_id))
+    conn.commit()
+    conn.close()
 
 if __name__ == '__main__':
     init_db()
