@@ -20,6 +20,7 @@ from database import (
     get_user_orders_count, get_stats
 )
 
+# Новый токен бота
 BOT_TOKEN = "8924425283:AAHotLsrRz9Zp5luOFnVfTNSv0FQ4ll8uec"
 ADMINS = [1979046241]
 
@@ -121,7 +122,7 @@ def categories_menu():
 @dp.message.outer_middleware()
 async def tech_work_middleware(handler, event: types.Message, data):
     if TECH_WORKS and event.from_user.id not in ADMINS:
-        await event.answer("⚠️️ В боте ведутся технические работы. Попробуйте зайти позже.")
+        await event.answer("⚠️ В боте ведутся технические работы. Попробуйте зайти позже.")
         return
     return await handler(event, data)
 
@@ -167,7 +168,7 @@ async def show_cart(message: types.Message):
     for name, price, count, _ in cart_items:
         item_total = price * count
         total_price += item_total
-        text += f"▪ **{name}** — {count} шт. x {price} руб. = **{item_total} руб.**\n"
+        text += f"▪️ **{name}** — {count} шт. x {price} руб. = **{item_total} руб.**\n"
         
     text += f"\n💳 **Итого к оплате:** {total_price} руб."
     
@@ -207,7 +208,7 @@ async def show_reviews(message: types.Message):
         
     await message.answer(text, parse_mode="Markdown")
 
-# --- РАБОТА С ЗАКАЗАМИИ ОЦЕНКА КУРЬЕРА ---
+# --- РАБОТА С ЗАКАЗАМИ И ОЦЕНКА КУРЬЕРА ---
 
 @dp.message(F.text.in_({"📦 Доступные заказы", "🚚 Взятые заказы", "🗄 История заказов", "🔧 Админка"}))
 async def handle_admin_buttons(message: types.Message):
@@ -225,8 +226,15 @@ async def handle_admin_buttons(message: types.Message):
             await message.answer("📦 Новых доступных заказов нет.")
             return
         
-        for oid, uid, items, total, date_str in orders:
-            text = f"📦 **Заказ #{oid}**\n👤 Клиент ID: `{uid}`\n🛒 Состав: {items}\n💰 Сумма: **{total} руб.**\n🕒 Время: {date_str}"
+        for oid, uid, items, total, date_str, username in orders:
+            client_mention = f"@{username}" if username else f"`{uid}`"
+            text = (
+                f"📦 **Заказ #{oid}**\n"
+                f"👤 Клиент: {client_mention} (ID: `{uid}`)\n"
+                f"🛒 Состав: {items}\n"
+                f"💰 Сумма: **{total} руб.**\n"
+                f"🕒 Время: {date_str}"
+            )
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="🚚 Взять заказ", callback_data=f"take_order_{oid}")]
             ])
@@ -238,8 +246,14 @@ async def handle_admin_buttons(message: types.Message):
             await message.answer("🚚 У вас нет активных взятых заказов.")
             return
         
-        for oid, uid, items, total, date_str in orders:
-            text = f"🚚 **Заказ в работе #{oid}**\n👤 Клиент ID: `{uid}`\n🛒 Состав: {items}\n💰 Сумма: **{total} руб.**"
+        for oid, uid, items, total, date_str, username in orders:
+            client_mention = f"@{username}" if username else f"`{uid}`"
+            text = (
+                f"🚚 **Заказ в работе #{oid}**\n"
+                f"👤 Клиент: {client_mention} (ID: `{uid}`)\n"
+                f"🛒 Состав: {items}\n"
+                f"💰 Сумма: **{total} руб.**"
+            )
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="✅ Завершить заказ", callback_data=f"complete_order_{oid}")]
             ])
@@ -252,8 +266,9 @@ async def handle_admin_buttons(message: types.Message):
             return
         
         text = "🗄 **Выполненные заказы:**\n\n"
-        for oid, uid, items, total, date_str in orders[:10]:
-            text += f"▪️ **Заказ #{oid}** | Клиент: `{uid}` | {total} руб.\n"
+        for oid, uid, items, total, date_str, username in orders[:10]:
+            client_mention = f"@{username}" if username else f"`{uid}`"
+            text += f"▪️ **Заказ #{oid}** | Клиент: {client_mention} | {total} руб.\n"
         await message.answer(text, parse_mode="Markdown")
 
     elif "Админка" in message.text:
@@ -272,7 +287,6 @@ async def process_complete_order(callback: types.CallbackQuery):
     complete_order(oid)
     await callback.message.edit_text(f"✅ **Заказ #{oid}** помечен как выполненный!", parse_mode="Markdown")
     
-    # Отправляем клиенту предложение оценить работу курьера
     order = get_order_by_id(oid)
     if order:
         client_id = order[1]
