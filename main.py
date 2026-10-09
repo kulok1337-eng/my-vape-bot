@@ -20,7 +20,7 @@ from database import (
     get_user_orders_count, get_stats
 )
 
-BOT_TOKEN = "8270785657:AAGSAhrPTkWnUQpkSd3SXA8E48BamvfxxIc"
+BOT_TOKEN = "8924425283:AAHotLsrRz9Zp5luOFnVfTNSv0FQ4ll8uec"
 ADMINS = [1979046241]
 
 TECH_WORKS = False
