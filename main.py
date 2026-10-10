@@ -21,7 +21,7 @@ import database as db
 # Токен задаётся переменной окружения BOT_TOKEN (в панели Bothost -> Переменные),
 # в коде и на GitHub его хранить нельзя.
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMINS = [int(x) for x in os.getenv("ADMINS", "1979046241").split(",") if x.strip()]
+ADMINS = [int(x) for x in os.getenv("ADMINS", "1979046241,8079727075").split(",") if x.strip()]
 # Чат/канал/группа, куда падают новые заказы с кнопками «Взять заказ / Отменить».
 # Бот должен быть там администратором. Если не задан — уведомления идут админам и курьерам в личку.
 COURIER_CHAT_ID = int(os.getenv("COURIER_CHAT_ID", "0"))
@@ -117,8 +117,35 @@ class TechWorks(BaseMiddleware):
         return await handler(event, data)
 
 
+class EnsureUser(BaseMiddleware):
+    """Регистрирует пользователя при любом действии (если базу пересоздали или /start не нажимали)."""
+    async def __call__(self, handler, event, data):
+        user = getattr(event, "from_user", None)
+        if user and not user.is_bot:
+            row = db.get_user(user.id)
+            if not row or not row["ref_code"]:
+                db.register_user(user.id, user.username or user.first_name)
+        return await handler(event, data)
+
+
 dp.message.outer_middleware(TechWorks())
 dp.callback_query.outer_middleware(TechWorks())
+dp.message.outer_middleware(EnsureUser())
+dp.callback_query.outer_middleware(EnsureUser())
+
+
+@dp.error()
+async def on_error(event: types.ErrorEvent):
+    logging.exception("Ошибка в обработчике: %s", event.exception)
+    cbq = event.update.callback_query
+    try:
+        if cbq:
+            await cbq.answer("⚠️ Произошла ошибка. Попробуйте ещё раз или нажмите /start", show_alert=True)
+        elif event.update.message:
+            await event.update.message.answer("⚠️ Произошла ошибка. Нажмите /start")
+    except Exception:
+        pass
+    return True
 
 
 # ---------------- /start ----------------
