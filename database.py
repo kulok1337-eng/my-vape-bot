@@ -360,6 +360,9 @@ def create_order(user_id, username, delivery_key):
     percent, dtype = get_discount(user_id)
     discount = round(goods * percent / 100)
     user = get_user(user_id)
+    if not user:
+        register_user(user_id, username)
+        user = get_user(user_id)
     to_pay = goods - discount + d_price
     balance_used = min(user["balance"] or 0, to_pay)
     total = to_pay
